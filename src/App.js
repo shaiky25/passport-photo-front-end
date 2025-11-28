@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Upload, Check, X, Loader, Download, Camera, AlertTriangle, Sparkles, RefreshCw, Printer } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // --- Analytics Helper ---
 const logAnalyticsEvent = (type, status, details) => {
