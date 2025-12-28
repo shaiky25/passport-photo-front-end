@@ -534,12 +534,26 @@ export default function PassportPhotoApp() {
       const data = await response.json();
       if (response.ok) {
         setShowOtpInput(true);
-        alert('OTP sent to your email! Check your inbox.');
+        alert('✅ Verification code sent to your email! Check your inbox (including spam folder).');
       } else {
-        alert(data.error || 'Failed to send OTP');
+        // Handle different types of errors with user-friendly messages
+        let errorMessage = data.error || 'Failed to send verification code';
+        
+        if (data.minutes_remaining) {
+          errorMessage = `⏰ ${errorMessage} (${data.minutes_remaining} minutes remaining)`;
+        } else if (errorMessage.includes('Too many OTP requests')) {
+          errorMessage = '⏰ Too many requests. Please wait before trying again.';
+        } else if (errorMessage.includes('Invalid email format')) {
+          errorMessage = '📧 Please enter a valid email address';
+        } else if (errorMessage.includes('Unable to send')) {
+          errorMessage = '📧 Unable to send email. Please check your email address and try again.';
+        }
+        
+        alert(errorMessage);
       }
     } catch (err) {
-      alert('Network error. Please try again.');
+      console.error('Send OTP error:', err);
+      alert('🌐 Network error. Please check your connection and try again.');
     } finally {
       setEmailLoading(false);
     }
@@ -547,7 +561,7 @@ export default function PassportPhotoApp() {
 
   const verifyOtp = async () => {
     if (!otp || otp.length !== 6) {
-      alert('Please enter the 6-digit OTP');
+      alert('Please enter the 6-digit verification code');
       return;
     }
 
@@ -564,6 +578,7 @@ export default function PassportPhotoApp() {
         console.log('OTP verified successfully, reprocessing image...');
         setEmailVerified(true);
         setShowOtpInput(false);
+        alert('✅ Email verified! Processing your photo without watermark...');
         if (file) {
           console.log('Reprocessing image without watermark');
           processImageWithVerifiedEmail(file, email);
@@ -571,10 +586,22 @@ export default function PassportPhotoApp() {
           console.log('No file to reprocess');
         }
       } else {
-        alert(data.error || 'Invalid OTP');
+        // Handle different types of verification errors
+        let errorMessage = data.error || 'Invalid verification code';
+        
+        if (errorMessage.includes('expired')) {
+          errorMessage = '⏰ Verification code has expired. Please request a new one.';
+        } else if (errorMessage.includes('Invalid') || errorMessage.includes('incorrect')) {
+          errorMessage = '❌ Incorrect verification code. Please check and try again.';
+        } else if (errorMessage.includes('attempts')) {
+          errorMessage = '🚫 Too many failed attempts. Please request a new verification code.';
+        }
+        
+        alert(errorMessage);
       }
     } catch (err) {
-      alert('Network error. Please try again.');
+      console.error('Verify OTP error:', err);
+      alert('🌐 Network error. Please check your connection and try again.');
     } finally {
       setEmailLoading(false);
     }

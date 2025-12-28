@@ -1,75 +1,35 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Upload, Check, X, Loader, Download, Camera, AlertTriangle, Sparkles, RefreshCw, Printer, Shield, Users, Star, ArrowRight, Play, Zap, Award } from 'lucide-react';
-
-// Sample before/after examples with actual image paths
-const SAMPLE_EXAMPLES = [
-  {
-    id: 1,
-    before: '/samples/before_1.jpg',
-    after: '/samples/after_1.jpg',
-    title: 'Casual Photo Fix',
-    description: 'Converted casual photo with background to passport-compliant format',
-    improvements: ['Background removed', 'Face centered', 'Proper sizing', 'Government compliant']
-  },
-  {
-    id: 2,
-    before: '/samples/before_2.jpg',
-    after: '/samples/after_2.jpg', 
-    title: 'Group Photo Extract',
-    description: 'Extracted individual from group photo and optimized',
-    improvements: ['Face detected', 'Cropped properly', 'Background clean', 'Print ready']
-  },
-  {
-    id: 3,
-    before: '/samples/before_3.jpg',
-    after: '/samples/after_3.jpg',
-    title: 'Professional Enhancement',
-    description: 'Enhanced professional headshot for passport compliance',
-    improvements: ['Lighting corrected', 'Background standardized', 'Face positioned', 'Passport ready']
-  }
-];
-
-// Trust indicators and testimonials
-const TRUST_INDICATORS = [
-  { icon: Shield, text: 'GDPR Compliant', subtext: 'Your data is protected' },
-  { icon: Award, text: 'Government Standards', subtext: 'Meets official requirements' },
-  { icon: Users, text: '50,000+ Photos', subtext: 'Successfully processed' },
-  { icon: Zap, text: 'AI Powered', subtext: 'Advanced face detection' }
-];
-
-const TESTIMONIALS = [
-  {
-    name: 'Sarah Johnson',
-    role: 'Business Professional',
-    text: 'Saved me hours at the photo studio. The AI detected my face perfectly and the result was accepted immediately.',
-    rating: 5
-  },
-  {
-    name: 'Michael Chen',
-    role: 'Student',
-    text: 'Used this for my visa application. The background removal was flawless and it met all the requirements.',
-    rating: 5
-  },
-  {
-    name: 'Emma Rodriguez',
-    role: 'Traveler',
-    text: 'Quick, easy, and professional results. Much better than expensive photo services.',
-    rating: 5
-  }
-];
+import { Upload, Check, X, Loader, Download, Camera, AlertTriangle, Sparkles, RefreshCw, Printer } from 'lucide-react';
 
 // Smart API URL detection with connectivity testing
 const getApiUrl = () => {
+  // If explicitly set via environment variable, use that
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
   
+  // Auto-detect based on current hostname
   const hostname = window.location.hostname;
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Development environment - try local backend first, fallback to different ports
     return 'http://localhost:5001/api';
   } else {
-    return 'http://passport-photo-ai-blue.eba-dezajzhp.us-east-1.elasticbeanstalk.com/api';
+    // Production environment
+    return 'http://passport-photo-free.eba-teefmmhg.us-east-1.elasticbeanstalk.com/api';
+  }
+};
+
+// Test API connectivity and fallback if needed
+const testApiConnectivity = async (url) => {
+  try {
+    const response = await fetch(`${url}/health`, { 
+      method: 'GET',
+      timeout: 3000 
+    });
+    return response.ok;
+  } catch (error) {
+    return false;
   }
 };
 
@@ -86,10 +46,12 @@ const makeApiCall = async (endpoint, options = {}) => {
   };
 
   try {
+    // Try primary API URL
     return await attemptCall(API_URL);
   } catch (error) {
     console.warn(`Primary API failed (${API_URL}):`, error.message);
     
+    // If we're in development and primary failed, try alternative ports
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       const fallbackPorts = ['5000', '5002', '8000'];
       
@@ -100,7 +62,7 @@ const makeApiCall = async (endpoint, options = {}) => {
             console.log(`Trying fallback API: ${fallbackUrl}`);
             const result = await attemptCall(fallbackUrl);
             console.log(`✅ Fallback API successful: ${fallbackUrl}`);
-            API_URL = fallbackUrl;
+            API_URL = fallbackUrl; // Update for future calls
             return result;
           } catch (fallbackError) {
             console.warn(`Fallback API failed (${fallbackUrl}):`, fallbackError.message);
@@ -109,13 +71,15 @@ const makeApiCall = async (endpoint, options = {}) => {
       }
     }
     
+    // If all attempts failed, throw the original error
     throw error;
   }
 };
 
+// Log the API URL being used for debugging
 console.log('🔗 Primary API URL:', API_URL);
 
-// Analytics Helper
+// --- Analytics Helper ---
 const logAnalyticsEvent = (type, status, details) => {
   const payload = {
     event_type: type,
@@ -124,6 +88,7 @@ const logAnalyticsEvent = (type, status, details) => {
     client_timestamp: new Date().toISOString(),
   };
   
+  // Use makeApiCall instead of fetch for better error handling
   makeApiCall('/log-event', {
     method: 'POST',
     headers: {
@@ -135,254 +100,8 @@ const logAnalyticsEvent = (type, status, details) => {
   });
 };
 
-// Hero Section Component
-const HeroSection = ({ onGetStarted }) => (
-  <div className="relative bg-gradient-to-br from-indigo-50 via-white to-purple-50 overflow-hidden">
-    <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="text-center">
-        <div className="flex justify-center mb-6">
-          <div className="flex items-center gap-2 bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium">
-            <Zap className="w-4 h-4" />
-            AI-Powered • Government Compliant • Free
-          </div>
-        </div>
-        
-        <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-          Perfect Passport Photos
-          <span className="block text-indigo-600">in Seconds</span>
-        </h1>
-        
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-          Our advanced AI automatically detects faces, removes backgrounds, and ensures your photo meets all official requirements. 
-          <span className="font-semibold text-gray-800"> No photo studio needed.</span>
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-          <button 
-            onClick={onGetStarted}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 flex items-center gap-2"
-          >
-            <Camera className="w-5 h-5" />
-            Get Started Free
-            <ArrowRight className="w-5 h-5" />
-          </button>
-          
-          <button className="text-indigo-600 hover:text-indigo-700 px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-2 hover:bg-indigo-50 transition-colors">
-            <Play className="w-5 h-5" />
-            See How It Works
-          </button>
-        </div>
-        
-        {/* Trust Indicators */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-          {TRUST_INDICATORS.map((indicator, index) => (
-            <div key={index} className="text-center">
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <indicator.icon className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                <div className="font-semibold text-gray-900 text-sm">{indicator.text}</div>
-                <div className="text-xs text-gray-600 mt-1">{indicator.subtext}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
-// Before/After Examples Component
-const ExamplesSection = () => {
-  const [activeExample, setActiveExample] = useState(0);
-  
-  return (
-    <div className="bg-white py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            See the AI in Action
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Real examples of photos transformed into passport-compliant images in seconds
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
-          {SAMPLE_EXAMPLES.map((example, index) => (
-            <div 
-              key={example.id}
-              className={`cursor-pointer transition-all duration-300 ${
-                activeExample === index ? 'transform scale-105' : 'hover:transform hover:scale-102'
-              }`}
-              onClick={() => setActiveExample(index)}
-            >
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="grid grid-cols-2 gap-0">
-                  <div className="relative">
-                    <img 
-                      src={example.before} 
-                      alt="Before" 
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      Before
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <img 
-                      src={example.after} 
-                      alt="After" 
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      After
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">{example.title}</h3>
-                  <p className="text-sm text-gray-600 mb-3">{example.description}</p>
-                  
-                  <div className="flex flex-wrap gap-1">
-                    {example.improvements.map((improvement, i) => (
-                      <span key={i} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                        ✓ {improvement}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {/* Active Example Details */}
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-8 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            {SAMPLE_EXAMPLES[activeExample].title}
-          </h3>
-          <p className="text-lg text-gray-700 mb-6">
-            {SAMPLE_EXAMPLES[activeExample].description}
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            {SAMPLE_EXAMPLES[activeExample].improvements.map((improvement, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
-                <Check className="w-4 h-4 text-green-500" />
-                <span className="text-sm font-medium text-gray-800">{improvement}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Testimonials Component
-const TestimonialsSection = () => (
-  <div className="bg-gray-50 py-16">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-          Trusted by Thousands
-        </h2>
-        <p className="text-xl text-gray-600">
-          See what our users say about their experience
-        </p>
-      </div>
-      
-      <div className="grid md:grid-cols-3 gap-8">
-        {TESTIMONIALS.map((testimonial, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center gap-1 mb-4">
-              {[...Array(testimonial.rating)].map((_, i) => (
-                <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-              ))}
-            </div>
-            
-            <p className="text-gray-700 mb-4 italic">
-              "{testimonial.text}"
-            </p>
-            
-            <div className="border-t pt-4">
-              <div className="font-semibold text-gray-900">{testimonial.name}</div>
-              <div className="text-sm text-gray-600">{testimonial.role}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-// Features Section
-const FeaturesSection = () => (
-  <div className="bg-white py-16">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-          Why Choose Our AI Tool?
-        </h2>
-        <p className="text-xl text-gray-600">
-          Professional results without the professional price
-        </p>
-      </div>
-      
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div className="text-center p-6">
-          <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Zap className="w-8 h-8 text-indigo-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Lightning Fast</h3>
-          <p className="text-gray-600">Get your passport photo in under 30 seconds with our advanced AI processing</p>
-        </div>
-        
-        <div className="text-center p-6">
-          <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Award className="w-8 h-8 text-green-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Government Compliant</h3>
-          <p className="text-gray-600">Meets all official requirements for US passports, visas, and ID documents</p>
-        </div>
-        
-        <div className="text-center p-6">
-          <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-purple-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Privacy First</h3>
-          <p className="text-gray-600">Your photos are processed securely and never stored on our servers</p>
-        </div>
-        
-        <div className="text-center p-6">
-          <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Camera className="w-8 h-8 text-blue-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Smart Detection</h3>
-          <p className="text-gray-600">Advanced face detection ensures perfect positioning and sizing every time</p>
-        </div>
-        
-        <div className="text-center p-6">
-          <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-yellow-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Background Removal</h3>
-          <p className="text-gray-600">Automatically removes and replaces backgrounds with professional white backdrop</p>
-        </div>
-        
-        <div className="text-center p-6">
-          <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Download className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Print Ready</h3>
-          <p className="text-gray-600">Download high-resolution photos ready for printing at any photo center</p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// Original components (ComplianceItem, ComplianceChecklist, FinalChecks)
+// A single item in the compliance checklist
 const ComplianceItem = ({ text, compliant, loading }) => (
   <li className="flex items-center justify-between py-2">
     <span className="text-sm text-gray-600">{text}</span>
@@ -400,6 +119,7 @@ const ComplianceItem = ({ text, compliant, loading }) => (
   </li>
 );
 
+// The checklist for the ORIGINAL photo
 const ComplianceChecklist = ({ analysis, loading, removeBackground }) => {
   if (!analysis && !loading) return null;
 
@@ -408,7 +128,7 @@ const ComplianceChecklist = ({ analysis, loading, removeBackground }) => {
   const faceDetectionFailed = face && !face.valid;
 
   const getAiCompliance = (detailKey) => {
-    if (faceDetectionFailed) return false;
+    if (faceDetectionFailed) return false; // AI checks can't pass if no face is found
     if (ai?.analysis_details && ai.analysis_details[detailKey] !== undefined) {
       return ai.analysis_details[detailKey];
     }
@@ -464,6 +184,7 @@ const ComplianceChecklist = ({ analysis, loading, removeBackground }) => {
   );
 };
 
+// The confirmation checklist for the FINAL photo
 const FinalChecks = ({ analysis, removeBackground }) => {
     if (!analysis) return null;
     const faceDetected = analysis.face_detection?.valid;
@@ -480,9 +201,9 @@ const FinalChecks = ({ analysis, removeBackground }) => {
     );
 };
 
-// Main App Component with enhanced landing page
+
+// The main App component
 export default function PassportPhotoApp() {
-  const [showUploader, setShowUploader] = useState(false);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -511,7 +232,6 @@ export default function PassportPhotoApp() {
     setShowOtpInput(false);
     setEmailLoading(false);
     setPreviewLoading(false);
-    setShowUploader(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -564,6 +284,7 @@ export default function PassportPhotoApp() {
         console.log('OTP verified successfully, reprocessing image...');
         setEmailVerified(true);
         setShowOtpInput(false);
+        // Reprocess image without watermark - pass email directly to ensure verification
         if (file) {
           console.log('Reprocessing image without watermark');
           processImageWithVerifiedEmail(file, email);
@@ -593,6 +314,7 @@ export default function PassportPhotoApp() {
     formData.append('remove_background', removeBackground);
     formData.append('use_ai', true);
     
+    // Use verifiedEmail parameter if provided, otherwise check state
     const emailToUse = verifiedEmail || (emailVerified ? email : null);
     console.log('Email verification status:', emailVerified, 'Email:', email, 'Verified email param:', verifiedEmail);
     if (emailToUse) {
@@ -613,6 +335,7 @@ export default function PassportPhotoApp() {
         ai_analysis: data.analysis?.ai_analysis?.ai_analysis || data.analysis?.ai_analysis || null,
       };
       
+      // Debug logging
       console.log('Raw API response:', data);
       console.log('Normalized analysis:', normalizedAnalysis);
       console.log('Face valid:', normalizedAnalysis.face_detection?.valid);
@@ -623,7 +346,7 @@ export default function PassportPhotoApp() {
 
       if (data.success && data.processed_image) {
         setProcessedImage(`data:image/jpeg;base64,${data.processed_image}`);
-        const isFullyCompliant = !!data.processed_image;
+        const isFullyCompliant = !!data.processed_image; // Show print sheets when image is processed
         console.log('Is fully compliant:', isFullyCompliant);
         logAnalyticsEvent('processing', isFullyCompliant ? 'success' : 'partial_success', {
           face_detected: normalizedAnalysis.face_detection?.valid,
@@ -656,6 +379,7 @@ export default function PassportPhotoApp() {
     if (selectedFile) {
       console.log('File selected:', selectedFile.name, selectedFile.size, 'bytes');
       
+      // Clear any previous errors
       setError(null);
       setPreviewLoading(true);
       
@@ -664,15 +388,19 @@ export default function PassportPhotoApp() {
         console.log('FileReader loaded, setting preview');
         const result = e.target.result;
         
+        // Check if it's a HEIC file and handle accordingly
         if (selectedFile.name.toLowerCase().endsWith('.heic')) {
           console.log('HEIC file detected, preview may not work in all browsers');
+          // For HEIC files, we'll show a placeholder and let the backend handle conversion
           setPreview(null);
           setPreviewLoading(false);
           setFile(selectedFile);
+          // Show a message that preview isn't available for HEIC
           console.log('HEIC preview not supported, proceeding with processing');
         } else {
           setPreview(result);
           setPreviewLoading(false);
+          // Set file after preview is ready to avoid timing issues
           setFile(selectedFile);
         }
       };
@@ -681,6 +409,7 @@ export default function PassportPhotoApp() {
         setPreview(null);
         setPreviewLoading(false);
         
+        // For HEIC files, this is expected - just proceed without preview
         if (selectedFile.name.toLowerCase().endsWith('.heic')) {
           console.log('HEIC preview failed as expected, proceeding with processing');
           setFile(selectedFile);
@@ -689,6 +418,7 @@ export default function PassportPhotoApp() {
         }
       };
       
+      // Start reading the file
       reader.readAsDataURL(selectedFile);
     }
   };
@@ -697,7 +427,7 @@ export default function PassportPhotoApp() {
     if (file) {
       processImage(file);
     }
-  }, [file]);
+  }, [file]); // Only depend on file, not processImage to prevent reprocessing when email changes
 
   const downloadSinglePhoto = () => {
     if (!processedImage) return;
@@ -714,7 +444,7 @@ export default function PassportPhotoApp() {
   
     const DPI = 300;
     const PHOTO_SIZE_INCHES = 2;
-    const photoSizePx = PHOTO_SIZE_INCHES * DPI;
+    const photoSizePx = PHOTO_SIZE_INCHES * DPI; // 600px
   
     const paperDimensions = {
       '4x6': { width: 6 * DPI, height: 4 * DPI },
@@ -752,28 +482,34 @@ export default function PassportPhotoApp() {
         ctx.drawImage(img, pos.x, pos.y, photoSizePx, photoSizePx);
       });
   
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([8, 4]);
+      // Draw grid lines
+      ctx.strokeStyle = '#000000';  // Pure black for easy visibility
+      ctx.lineWidth = 3;            // Much thicker lines for cutting
+      ctx.setLineDash([8, 4]);      // Longer dashes, easier to see
   
       positions.forEach(pos => {
+        // Draw a box around each photo
         ctx.strokeRect(pos.x, pos.y, photoSizePx, photoSizePx);
       });
 
-      ctx.setLineDash([]);
+      // Add measurement indicators to show 2x2 inch scale for ALL photos
+      ctx.setLineDash([]); // Solid lines for measurements
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 2;
       ctx.fillStyle = '#000000';
       ctx.font = 'bold 20px Arial';
       ctx.textAlign = 'center';
 
+      // Add measurements for each photo
       positions.forEach((pos, index) => {
+        // Top measurement line (2 inches)
         const topY = pos.y - 25;
         ctx.beginPath();
         ctx.moveTo(pos.x, topY);
         ctx.lineTo(pos.x + photoSizePx, topY);
         ctx.stroke();
         
+        // Top measurement ticks
         ctx.beginPath();
         ctx.moveTo(pos.x, topY - 4);
         ctx.lineTo(pos.x, topY + 4);
@@ -781,14 +517,17 @@ export default function PassportPhotoApp() {
         ctx.lineTo(pos.x + photoSizePx, topY + 4);
         ctx.stroke();
         
+        // Top measurement text
         ctx.fillText('2"', pos.x + photoSizePx/2, topY - 8);
         
+        // Left measurement line (2 inches)
         const leftX = pos.x - 25;
         ctx.beginPath();
         ctx.moveTo(leftX, pos.y);
         ctx.lineTo(leftX, pos.y + photoSizePx);
         ctx.stroke();
         
+        // Left measurement ticks
         ctx.beginPath();
         ctx.moveTo(leftX - 4, pos.y);
         ctx.lineTo(leftX + 4, pos.y);
@@ -796,6 +535,7 @@ export default function PassportPhotoApp() {
         ctx.lineTo(leftX + 4, pos.y + photoSizePx);
         ctx.stroke();
         
+        // Left measurement text (rotated)
         ctx.save();
         ctx.translate(leftX - 12, pos.y + photoSizePx/2);
         ctx.rotate(-Math.PI/2);
@@ -811,9 +551,11 @@ export default function PassportPhotoApp() {
     img.src = processedImage;
   };
 
+  // Only show advanced features (watermark removal, print sheets) if face was detected
   const faceDetected = analysis?.face_detection?.valid === true;
   const isFullyCompliant = !!processedImage && faceDetected;
   
+  // Debug logging for face detection status
   console.log('=== FACE DETECTION DEBUG ===');
   console.log('analysis:', analysis);
   console.log('analysis?.face_detection:', analysis?.face_detection);
@@ -831,71 +573,13 @@ export default function PassportPhotoApp() {
     });
   }
 
-  if (!showUploader && !file) {
-    return (
-      <div className="min-h-screen bg-white">
-        <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 p-2 rounded-lg">
-                <Camera className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">PassportPhoto.AI</h1>
-            </div>
-            
-            <button 
-              onClick={() => setShowUploader(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-            >
-              Upload Photo
-            </button>
-          </div>
-        </header>
-
-        <HeroSection onGetStarted={() => setShowUploader(true)} />
-        <ExamplesSection />
-        <FeaturesSection />
-        <TestimonialsSection />
-        
-        <footer className="bg-gray-900 text-white py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="bg-indigo-600 p-2 rounded-lg">
-                <Camera className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold">PassportPhoto.AI</h3>
-            </div>
-            <p className="text-gray-400 mb-6">
-              Professional passport photos powered by AI. Free, fast, and government compliant.
-            </p>
-            <div className="flex justify-center gap-6 text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
-          </div>
-        </footer>
-      </div>
-    );
-  }
-
-  // Original uploader interface when showUploader is true or file is selected
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-gray-800">
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={resetState} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="bg-indigo-600 p-2 rounded-lg">
-                <Camera className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-slate-800">PassportPhoto.AI</h1>
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Shield className="w-4 h-4 text-green-500" />
-            <span>Secure & Private</span>
+            <Camera className="w-7 h-7 text-indigo-600" />
+            <h1 className="text-xl font-bold text-slate-800">AI Passport Photo Tool</h1>
           </div>
         </div>
       </header>
@@ -903,60 +587,18 @@ export default function PassportPhotoApp() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!file ? (
           <div className="text-center">
-            <div className="mb-6">
-              <button 
-                onClick={resetState}
-                className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-2 mx-auto"
-              >
-                ← Back to Examples
-              </button>
-            </div>
-            
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-4">Upload Your Photo</h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
-              Upload any photo and our AI will automatically create a perfect passport photo that meets all official requirements.
-            </p>
-            
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Get your U.S. visa photo in seconds</h2>
+            <p className="mt-3 text-lg text-slate-600 max-w-2xl mx-auto">Our AI ensures your photo meets all official requirements for free.</p>
             <div className="mt-8">
-              <label htmlFor="file-upload" className="w-full max-w-lg mx-auto flex flex-col items-center justify-center px-6 py-12 border-2 border-dashed border-indigo-300 rounded-xl cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 transition-all duration-200">
-                <div className="bg-indigo-100 p-4 rounded-full mb-4">
-                  <Upload className="w-8 h-8 text-indigo-600" />
-                </div>
-                <span className="text-xl font-semibold text-indigo-600 mb-2">Click to Upload a Photo</span>
-                <span className="text-sm text-gray-500">PNG, JPG, or HEIC files accepted</span>
-                <span className="text-xs text-gray-400 mt-2">Maximum file size: 10MB</span>
+              <label htmlFor="file-upload" className="w-full max-w-lg mx-auto flex flex-col items-center justify-center px-6 py-12 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                <Upload className="w-12 h-12 text-gray-400" />
+                <span className="mt-4 text-lg font-medium text-indigo-600">Click to Upload a Photo</span>
+                <span className="mt-1 text-sm text-gray-500">PNG, JPG, or HEIC files accepted</span>
               </label>
-              <input 
-                id="file-upload" 
-                name="file-upload" 
-                type="file" 
-                className="sr-only" 
-                accept="image/png, image/jpeg, image/heic" 
-                onChange={handleFileChange}
-                ref={fileInputRef}
-              />
-            </div>
-            
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <Zap className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900 mb-1">Instant Processing</h3>
-                <p className="text-sm text-gray-600">Results in under 30 seconds</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900 mb-1">Government Compliant</h3>
-                <p className="text-sm text-gray-600">Meets all official standards</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <Shield className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900 mb-1">Privacy Protected</h3>
-                <p className="text-sm text-gray-600">Photos never stored</p>
-              </div>
+              <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/png, image/jpeg, image/heic" onChange={handleFileChange} />
             </div>
           </div>
         ) : (
-          // Original three-column layout for processing
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Column 1: Original & Controls */}
             <div className="lg:col-span-1 space-y-4">
